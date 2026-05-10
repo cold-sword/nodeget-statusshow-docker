@@ -2,28 +2,27 @@ name: Sync & Build StatusShow
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # 每 6 小时自动检查一次
-  workflow_dispatch:          # 保留手动触发入口
+    - cron: '0 */6 * * *'   # 每 6 小时检查一次上游新 Release
+  workflow_dispatch:
 
 permissions:
-  contents: write   # 允许提交 last_upstream_sha
-  packages: write   # 允许推送到 ghcr.io
+  contents: write
+  packages: write
 
 jobs:
   sync-and-build:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. 获取上游最新 commit SHA ─────────────────────────────
-      - name: Get upstream latest SHA
+      # ── 1. 获取上游最新 Release Tag ────────────────────────────
+      - name: Get upstream latest release tag
         id: upstream
         run: |
-          SHA=$(curl -sf \
+          TAG=$(curl -sf \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/NodeSeekDev/NodeGet-StatusShow/commits/main \
-            | jq -r '.sha')
-          echo "sha=$SHA"         >> $GITHUB_OUTPUT
-          echo "short=${SHA:0:7}" >> $GITHUB_OUTPUT
+            https://api.github.com/repos/NodeSeekDev/NodeGet-StatusShow/releases/latest \
+            | jq -r '.tag_name')
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       # ── 2. Checkout 本仓库 ──────────────────────────────────────
       - name: Checkout
@@ -34,15 +33,15 @@ jobs:
         id: check
         run: |
           LAST=""
-          [ -f last_upstream_sha ] && LAST=$(cat last_upstream_sha)
-          CURRENT="${{ steps.upstream.outputs.sha }}"
+          [ -f last_upstream_tag ] && LAST=$(cat last_upstream_tag)
+          CURRENT="${{ steps.upstream.outputs.tag }}"
           echo "Last:    $LAST"
           echo "Current: $CURRENT"
           [ "$LAST" = "$CURRENT" ] \
             && echo "skip=true"  >> $GITHUB_OUTPUT \
             || echo "skip=false" >> $GITHUB_OUTPUT
 
-      # ── 4. 以下步骤仅在有更新时执行 ────────────────────────────
+      # ── 4. 以下步骤仅在有新版本时执行 ──────────────────────────
       - name: Set up QEMU
         if: steps.check.outputs.skip == 'false'
         uses: docker/setup-qemu-action@v3
@@ -76,21 +75,20 @@ jobs:
           push: true
           build-args: |
             STATUSSHOW_REPO=https://github.com/NodeSeekDev/NodeGet-StatusShow.git
-            STATUSSHOW_REF=main
-            STATUSSHOW_SOURCE_REV=${{ steps.upstream.outputs.sha }}
+            STATUSSHOW_REF=${{ steps.upstream.outputs.tag }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow:${{ steps.upstream.outputs.short }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow:${{ steps.upstream.outputs.tag }}
             ghcr.io/${{ github.repository_owner }}/nodeget-statusshow:latest
-            ghcr.io/${{ github.repository_owner }}/nodeget-statusshow:${{ steps.upstream.outputs.short }}
+            ghcr.io/${{ github.repository_owner }}/nodeget-statusshow:${{ steps.upstream.outputs.tag }}
 
-      # ── 5. 记录本次构建的上游 SHA，防止重复构建 ─────────────────
-      - name: Save upstream SHA
+      # ── 5. 记录本次构建的 Tag，防止重复构建 ────────────────────
+      - name: Save upstream tag
         if: steps.check.outputs.skip == 'false'
         run: |
-          echo "${{ steps.upstream.outputs.sha }}" > last_upstream_sha
+          echo "${{ steps.upstream.outputs.tag }}" > last_upstream_tag
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add last_upstream_sha
-          git commit -m "chore: sync upstream ${{ steps.upstream.outputs.short }} [skip ci]"
+          git add last_upstream_tag
+          git commit -m "chore: sync upstream ${{ steps.upstream.outputs.tag }} [skip ci]"
           git push
