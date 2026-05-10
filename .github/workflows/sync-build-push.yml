@@ -1,0 +1,96 @@
+name: Sync & Build StatusShow
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # 每 6 小时自动检查一次
+  workflow_dispatch:          # 保留手动触发入口
+
+permissions:
+  contents: write   # 允许提交 last_upstream_sha
+  packages: write   # 允许推送到 ghcr.io
+
+jobs:
+  sync-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. 获取上游最新 commit SHA ─────────────────────────────
+      - name: Get upstream latest SHA
+        id: upstream
+        run: |
+          SHA=$(curl -sf \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/NodeSeekDev/NodeGet-StatusShow/commits/main \
+            | jq -r '.sha')
+          echo "sha=$SHA"         >> $GITHUB_OUTPUT
+          echo "short=${SHA:0:7}" >> $GITHUB_OUTPUT
+
+      # ── 2. Checkout 本仓库 ──────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 3. 与上次构建对比，决定是否跳过 ────────────────────────
+      - name: Check if rebuild needed
+        id: check
+        run: |
+          LAST=""
+          [ -f last_upstream_sha ] && LAST=$(cat last_upstream_sha)
+          CURRENT="${{ steps.upstream.outputs.sha }}"
+          echo "Last:    $LAST"
+          echo "Current: $CURRENT"
+          [ "$LAST" = "$CURRENT" ] \
+            && echo "skip=true"  >> $GITHUB_OUTPUT \
+            || echo "skip=false" >> $GITHUB_OUTPUT
+
+      # ── 4. 以下步骤仅在有更新时执行 ────────────────────────────
+      - name: Set up QEMU
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./statusshow
+          file: ./statusshow/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            STATUSSHOW_REPO=https://github.com/NodeSeekDev/NodeGet-StatusShow.git
+            STATUSSHOW_REF=main
+            STATUSSHOW_SOURCE_REV=${{ steps.upstream.outputs.sha }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow:${{ steps.upstream.outputs.short }}
+            ghcr.io/${{ github.repository_owner }}/nodeget-statusshow:latest
+            ghcr.io/${{ github.repository_owner }}/nodeget-statusshow:${{ steps.upstream.outputs.short }}
+
+      # ── 5. 记录本次构建的上游 SHA，防止重复构建 ─────────────────
+      - name: Save upstream SHA
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          echo "${{ steps.upstream.outputs.sha }}" > last_upstream_sha
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add last_upstream_sha
+          git commit -m "chore: sync upstream ${{ steps.upstream.outputs.short }} [skip ci]"
+          git push
