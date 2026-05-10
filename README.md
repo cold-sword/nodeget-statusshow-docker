@@ -48,7 +48,7 @@ mkdir nodeget-statusshow && cd nodeget-statusshow
   "site_tokens": [
     {
       "name": "主节点",
-      "backend_url": "wss://your-nodeget-server.example.com/ws",
+      "backend_url": "wss://your-nodeget-server.example.com",
       "token": "your-token-here"
     }
   ]
