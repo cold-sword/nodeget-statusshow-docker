@@ -1,5 +1,0 @@
-{
-  "backend": "${STATUS_BACKEND_URL}",
-  "token": "${STATUS_TOKEN}",
-  "name": "${STATUS_NAME}"
-}
