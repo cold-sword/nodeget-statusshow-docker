@@ -21,7 +21,7 @@
 
 [NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) is the public status page for [NodeGet](https://github.com/NodeSeekDev/NodeGet) — a next-generation server monitoring and management tool written in Rust. It displays real-time server status, resource usage, and infrastructure overview.
 
-This repository provides a ready-to-use Docker image for the NodeGet public frontend's default theme, StatusShow , automatically built and pushed via GitHub Actions whenever a new upstream release is published.
+This repository provides a ready-to-use Docker image for the NodeGet public frontend's default theme, StatusShow, automatically built and pushed via GitHub Actions whenever a new upstream release is published.
 
 ---
 
