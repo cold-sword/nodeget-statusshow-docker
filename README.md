@@ -15,13 +15,13 @@
 
 [NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) 是 [NodeGet](https://github.com/NodeSeekDev/NodeGet) 的公开探针展示页，以实时方式展示服务器状态、资源占用与基础设施概览。NodeGet 是一款基于 Rust 编写的新一代服务器监控与管理工具。
 
-本仓库提供开箱即用的 Docker 镜像，通过 GitHub Actions 自动追踪上游 Release 并构建推送，无需手动维护。
+本仓库提供 NodeGet 公共前端默认主题 StatusShow 开箱即用的 Docker 镜像，通过 GitHub Actions 自动追踪上游 Release 并构建推送，无需手动维护。
 
 **English**
 
 [NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) is the public status page for [NodeGet](https://github.com/NodeSeekDev/NodeGet) — a next-generation server monitoring and management tool written in Rust. It displays real-time server status, resource usage, and infrastructure overview.
 
-This repository provides a ready-to-use Docker image, automatically built and pushed via GitHub Actions whenever a new upstream release is published.
+This repository provides a ready-to-use Docker image for the NodeGet public frontend's default theme, StatusShow , automatically built and pushed via GitHub Actions whenever a new upstream release is published.
 
 ---
 
