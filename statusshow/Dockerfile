@@ -19,14 +19,10 @@ RUN npm run build
 # ─────────────── runtime ───────────────
 FROM node:22-alpine
 
-RUN apk add --no-cache gettext \
- && npm install -g serve
+RUN npm install -g serve
 
 WORKDIR /app
-COPY --from=build /src/dist/        .
-COPY config.json.template           .
-COPY docker-entrypoint.sh           /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY --from=build /src/dist/ .
 
 EXPOSE 3000
-ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["serve", "-s", "/app", "-l", "tcp://0.0.0.0:3000"]
