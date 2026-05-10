@@ -2,7 +2,7 @@ name: Sync & Build StatusShow
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # 每 6 小时检查一次上游新 Release
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -10,11 +10,14 @@ permissions:
   packages: write
 
 jobs:
-  sync-and-build:
+  # ── 1. 检查上游是否有新版本 ──────────────────────────────────
+  check:
     runs-on: ubuntu-latest
+    outputs:
+      tag:  ${{ steps.upstream.outputs.tag }}
+      skip: ${{ steps.check.outputs.skip }}
 
     steps:
-      # ── 1. 获取上游最新 Release Tag ────────────────────────────
       - name: Get upstream latest release tag
         id: upstream
         run: |
@@ -24,11 +27,9 @@ jobs:
             | jq -r '.tag_name')
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      # ── 2. Checkout 本仓库 ──────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 3. 与上次构建对比，决定是否跳过 ────────────────────────
       - name: Check if rebuild needed
         id: check
         run: |
@@ -41,54 +42,113 @@ jobs:
             && echo "skip=true"  >> $GITHUB_OUTPUT \
             || echo "skip=false" >> $GITHUB_OUTPUT
 
-      # ── 4. 以下步骤仅在有新版本时执行 ──────────────────────────
-      - name: Set up QEMU
-        if: steps.check.outputs.skip == 'false'
-        uses: docker/setup-qemu-action@v3
+  # ── 2. 各平台原生构建（无 QEMU）────────────────────────────
+  build:
+    needs: check
+    if: needs.check.outputs.skip == 'false'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            suffix: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm   # GitHub 原生 arm64 Runner
+            suffix: arm64
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        if: steps.check.outputs.skip == 'false'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to DockerHub
-        if: steps.check.outputs.skip == 'false'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
-        if: steps.check.outputs.skip == 'false'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
-        if: steps.check.outputs.skip == 'false'
+      - name: Build and push (platform image)
         uses: docker/build-push-action@v6
         with:
           context: ./statusshow
           file: ./statusshow/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
           build-args: |
             STATUSSHOW_REPO=https://github.com/NodeSeekDev/NodeGet-StatusShow.git
-            STATUSSHOW_REF=${{ steps.upstream.outputs.tag }}
+            STATUSSHOW_REF=${{ needs.check.outputs.tag }}
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow:${{ steps.upstream.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/nodeget-statusshow:latest
-            ghcr.io/${{ github.repository_owner }}/nodeget-statusshow:${{ steps.upstream.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow:${{ needs.check.outputs.tag }}-${{ matrix.suffix }}
+            ghcr.io/${{ github.repository_owner }}/nodeget-statusshow:${{ needs.check.outputs.tag }}-${{ matrix.suffix }}
 
-      # ── 5. 记录本次构建的 Tag，防止重复构建 ────────────────────
-      - name: Save upstream tag
-        if: steps.check.outputs.skip == 'false'
+  # ── 3. 合并多架构 manifest ────────────────────────────────
+  merge:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge manifest (DockerHub)
         run: |
-          echo "${{ steps.upstream.outputs.tag }}" > last_upstream_tag
+          TAG="${{ needs.check.outputs.tag }}"
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/nodeget-statusshow"
+          docker buildx imagetools create \
+            -t ${IMAGE}:latest \
+            -t ${IMAGE}:${TAG} \
+            ${IMAGE}:${TAG}-amd64 \
+            ${IMAGE}:${TAG}-arm64
+
+      - name: Merge manifest (ghcr.io)
+        run: |
+          TAG="${{ needs.check.outputs.tag }}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/nodeget-statusshow"
+          docker buildx imagetools create \
+            -t ${IMAGE}:latest \
+            -t ${IMAGE}:${TAG} \
+            ${IMAGE}:${TAG}-amd64 \
+            ${IMAGE}:${TAG}-arm64
+
+  # ── 4. 记录本次构建 Tag ───────────────────────────────────
+  save-tag:
+    needs: [check, merge]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Save upstream tag
+        run: |
+          echo "${{ needs.check.outputs.tag }}" > last_upstream_tag
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add last_upstream_tag
-          git commit -m "chore: sync upstream ${{ steps.upstream.outputs.tag }} [skip ci]"
+          git commit -m "chore: sync upstream ${{ needs.check.outputs.tag }} [skip ci]"
           git push
