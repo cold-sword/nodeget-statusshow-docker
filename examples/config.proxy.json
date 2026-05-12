@@ -1,0 +1,12 @@
+{
+  "site_name": "我的探针页",
+  "site_logo": "",
+  "footer": "Powered by NodeGet",
+  "site_tokens": [
+    {
+      "name": "主节点",
+      "backend_url": "ws://127.0.0.1:8787/ws",
+      "token": "public-placeholder"
+    }
+  ]
+}

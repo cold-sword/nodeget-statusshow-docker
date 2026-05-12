@@ -25,12 +25,15 @@ This repository provides a ready-to-use Docker image for the NodeGet public fron
 
 ---
 
-## 快速部署 / Quick Deploy
+## 快速部署（静态直连）/ Quick Deploy (Static Direct Mode)
 
 ### 前置要求 / Prerequisites
 
 - Docker `20.10+` 与 Docker Compose `v2.0+`
 - 一个运行中的 NodeGet Server 实例 / A running NodeGet Server instance
+
+> ⚠️ 静态直连模式会把 `token` 放在 `config.json` 中并下发到浏览器，不适合保存敏感 Token。  
+> ⚠️ Static direct mode exposes `token` in `config.json` to the browser, so it is not suitable for sensitive tokens.
 
 ### 1. 准备配置文件 / Prepare Config File
 
@@ -118,6 +121,68 @@ docker compose pull && docker compose up -d
 
 ---
 
+## 安全部署（推荐）/ Secure Deploy (Recommended: Server-side Proxy)
+
+此方案通过可选的 `nodeget-statusshow-proxy` 服务在服务端持有 Token，浏览器只访问代理地址，避免在 `config.json` 暴露真实 Token。  
+This optional `nodeget-statusshow-proxy` keeps the real token server-side, so the browser only sees the proxy endpoint.
+
+### 1. 准备文件 / Prepare files
+
+```bash
+mkdir nodeget-statusshow && cd nodeget-statusshow
+curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/cold-sword/nodeget-statusshow-docker/main/examples/docker-compose.proxy.yml
+curl -fsSL -o config.json https://raw.githubusercontent.com/cold-sword/nodeget-statusshow-docker/main/examples/config.proxy.json
+```
+
+> 上面的 compose 示例仅使用预构建镜像（无 `build:`），可直接 `docker compose up -d`。  
+> The compose example above uses prebuilt images only (no `build:`), ready for `docker compose up -d`.
+
+### 2. 配置环境变量 / Configure environment variables
+
+```dotenv
+STATUSSHOW_IMAGE=coldsword/nodeget-statusshow:latest
+# 或 GHCR / Or GHCR:
+# STATUSSHOW_IMAGE=ghcr.io/cold-sword/nodeget-statusshow:latest
+
+STATUSSHOW_PROXY_IMAGE=ghcr.io/cold-sword/nodeget-statusshow-proxy:latest
+# 或 DockerHub / Or DockerHub:
+# STATUSSHOW_PROXY_IMAGE=coldsword/nodeget-statusshow-proxy:latest
+
+STATUS_HOST_PORT=3000
+PROXY_HOST_PORT=8787
+
+# NodeGet 后端地址（直连 NodeGet Server）
+NODEGET_BACKEND_URL=wss://your-nodeget-server.example.com
+# 真正的敏感 Token，仅存在代理容器环境变量
+NODEGET_BACKEND_TOKEN=your-real-secret-token
+```
+
+### 3. 配置前端 `config.json` / Configure frontend `config.json`
+
+在 `config.json` 的 `site_tokens` 中，将 `backend_url` 指向代理地址（`/ws`），并将 `token` 设置为占位字符串即可。  
+Point `backend_url` to the proxy WebSocket endpoint (`/ws`) and keep `token` as a public placeholder string.
+
+```json
+{
+  "site_tokens": [
+    {
+      "name": "主节点",
+      "backend_url": "ws://127.0.0.1:8787/ws",
+      "token": "public-placeholder"
+    }
+  ]
+}
+```
+
+### 4. 启动 / Start
+
+```bash
+docker compose up -d
+docker compose logs -f
+```
+
+---
+
 ## 本地构建 / Local Build
 
 ```bash
@@ -149,8 +214,8 @@ After building, replace `image` in `docker-compose.yml` with your local image na
 
 ## 反向代理 / Reverse Proxy
 
-> **说明 / Note**：探针页由浏览器直接与 NodeGet Server 建立 WebSocket 连接，反向代理只提供静态文件，**无需**对本容器做 WebSocket 代理。  
-> The browser connects to NodeGet Server via WebSocket directly. The reverse proxy only serves static files — **no WebSocket proxying** to this container needed.
+> **静态直连模式 / Static direct mode**：仅需把 `/` 反代到 `nodeget-statusshow` 容器。  
+> **代理安全模式 / Secure proxy mode**：还需把 WebSocket 路径（如 `/ws`）反代到 `nodeget-proxy` 容器。
 
 ### Nginx
 
@@ -175,6 +240,16 @@ server {
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
+
+    # Secure proxy mode only
+    location /ws {
+        proxy_pass         http://127.0.0.1:8787/ws;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        "upgrade";
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+    }
 }
 ```
 
@@ -183,6 +258,7 @@ server {
 ```caddyfile
 status.example.com {
     reverse_proxy localhost:3000
+    reverse_proxy /ws localhost:8787
 }
 ```
 
@@ -218,6 +294,8 @@ services:
 | 🌐 NodeSeek 社区 / Community | [nodeseek.com](https://nodeseek.com) |
 | 🐳 DockerHub | [coldsword/nodeget-statusshow](https://hub.docker.com/r/coldsword/nodeget-statusshow) |
 | 📦 GHCR | [ghcr.io/cold-sword/nodeget-statusshow](https://ghcr.io/cold-sword/nodeget-statusshow) |
+| 🐳 DockerHub Proxy | [coldsword/nodeget-statusshow-proxy](https://hub.docker.com/r/coldsword/nodeget-statusshow-proxy) |
+| 📦 GHCR Proxy | [ghcr.io/cold-sword/nodeget-statusshow-proxy](https://ghcr.io/cold-sword/nodeget-statusshow-proxy) |
 
 ---
 
