@@ -108,9 +108,10 @@ export function createProxyServer({
       }
     })
 
-    upstream.on('error', () => {
+    upstream.on('error', error => {
+      console.error('upstream websocket error:', error)
       if (client.readyState === WebSocket.OPEN) {
-        client.close(1011, 'upstream error')
+        client.close(1011, 'backend connection failed')
       }
     })
 
@@ -126,7 +127,8 @@ export function createProxyServer({
       }
     })
 
-    client.on('error', () => {
+    client.on('error', error => {
+      console.error('client websocket error:', error)
       if (upstream.readyState === WebSocket.OPEN || upstream.readyState === WebSocket.CONNECTING) {
         upstream.close()
       }

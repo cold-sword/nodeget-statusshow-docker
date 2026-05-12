@@ -167,12 +167,15 @@ Point `backend_url` to the proxy WebSocket endpoint (`/ws`) and keep `token` as 
   "site_tokens": [
     {
       "name": "主节点",
-      "backend_url": "ws://127.0.0.1:8787/ws",
+      "backend_url": "wss://status.example.com/ws",
       "token": "public-placeholder"
     }
   ]
 }
 ```
+
+本地纯内网调试可使用 `ws://127.0.0.1:8787/ws`，公网请使用 `wss://`。  
+For local LAN debugging you can use `ws://127.0.0.1:8787/ws`, but use `wss://` for public deployments.
 
 ### 4. 启动 / Start
 

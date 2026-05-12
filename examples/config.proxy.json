@@ -5,7 +5,7 @@
   "site_tokens": [
     {
       "name": "主节点",
-      "backend_url": "ws://127.0.0.1:8787/ws",
+      "backend_url": "wss://status.example.com/ws",
       "token": "public-placeholder"
     }
   ]
