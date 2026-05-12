@@ -165,17 +165,18 @@ function isDirectRun() {
 }
 
 if (isDirectRun()) {
+  const port = Number(process.env.PORT || 8787)
   const proxy = createProxyServer({
     backendUrl: process.env.NODEGET_BACKEND_URL,
     backendToken: process.env.NODEGET_BACKEND_TOKEN,
-    port: Number(process.env.PORT || 8787),
+    port,
     allowedOrigins: parseAllowedOrigins(process.env.ALLOWED_ORIGINS),
   })
 
   proxy
     .listen()
     .then(address => {
-      const listenPort = typeof address === 'object' && address ? address.port : process.env.PORT || 8787
+      const listenPort = typeof address === 'object' && address ? address.port : port
       console.log(`nodeget proxy listening on :${listenPort}`)
     })
     .catch(error => {
