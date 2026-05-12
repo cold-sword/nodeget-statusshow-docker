@@ -60,13 +60,13 @@ export function createProxyServer({
   server.on('upgrade', (req, socket, head) => {
     const path = new URL(req.url || '/', 'http://localhost').pathname
     if (path !== WS_PATH) {
-      socket.write('HTTP/1.1 404 Not Found\\r\\n\\r\\n')
+      socket.write('HTTP/1.1 404 Not Found\r\n\r\n')
       socket.destroy()
       return
     }
 
     if (!isOriginAllowed(req.headers.origin, allowedOrigins)) {
-      socket.write('HTTP/1.1 403 Forbidden\\r\\n\\r\\n')
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n')
       socket.destroy()
       return
     }
