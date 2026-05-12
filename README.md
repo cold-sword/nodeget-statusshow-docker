@@ -3,7 +3,7 @@
 > [NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) 的第三方 Docker 镜像，自动跟随上游版本同步构建。  
 > Third-party Docker image for [NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow), automatically synced with upstream releases.
 
-[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/cold-sword/nodeget-statusshow-docker/sync-build-push.yml?label=sync%20%26%20build&logo=github)](https://github.com/cold-sword/nodeget-statusshow-docker/actions)
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/cold-sword/nodeget-statusshow-docker/sync-build-push.yml?label=sync%20%26%20build&logo=github)](https://github.com/cold-swor[...]
 [![Docker Pulls](https://img.shields.io/docker/pulls/coldsword/nodeget-statusshow?logo=docker)](https://hub.docker.com/r/coldsword/nodeget-statusshow)
 [![Image Version](https://img.shields.io/docker/v/coldsword/nodeget-statusshow?sort=semver&logo=docker)](https://hub.docker.com/r/coldsword/nodeget-statusshow/tags)
 
@@ -13,15 +13,15 @@
 
 **中文**
 
-[NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) 是 [NodeGet](https://github.com/NodeSeekDev/NodeGet) 的公开探针展示页，以实时方式展示服务器状态、资源占用与基础设施概览。NodeGet 是一款基于 Rust 编写的新一代服务器监控与管理工具。
+[NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) 是 [NodeGet](https://github.com/NodeSeekDev/NodeGet) 的公开探针展示页，以实时方式展示服务器状态、资�[...]
 
 本仓库提供 NodeGet 公共前端默认主题 StatusShow 开箱即用的 Docker 镜像，通过 GitHub Actions 自动追踪上游 Release 并构建推送，无需手动维护。
 
 **English**
 
-[NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) is the public status page for [NodeGet](https://github.com/NodeSeekDev/NodeGet) — a next-generation server monitoring and management tool written in Rust. It displays real-time server status, resource usage, and infrastructure overview.
+[NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) is the public status page for [NodeGet](https://github.com/NodeSeekDev/NodeGet) — a next-generation server monitoring and [...]
 
-This repository provides a ready-to-use Docker image for the NodeGet public frontend's default theme, StatusShow, automatically built and pushed via GitHub Actions whenever a new upstream release is published.
+This repository provides a ready-to-use Docker image for the NodeGet public frontend's default theme, StatusShow, automatically built and pushed via GitHub Actions whenever a new upstream release [...]
 
 ---
 
@@ -38,13 +38,21 @@ This repository provides a ready-to-use Docker image for the NodeGet public fron
 mkdir nodeget-statusshow && cd nodeget-statusshow
 ```
 
-**`config.json`**（单节点 / Single node）
+**`nodeget-theme.json`**（单节点 / Single node）
 
 ```json
 {
-  "site_name": "我的探针页",
-  "site_logo": "",
-  "footer": "Powered by NodeGet",
+  "name": "NodeGet Basic Theme",
+  "short": "NodeGetBasic",
+  "description": "NodeGet Basic Theme - a boilerplate for custom themes",
+  "author": "NodeSeekDev",
+  "repository": "https://github.com/NodeSeekDev/NodeGet-StatusShow",
+  "dist_page": "https://nodeget.pages.dev",
+  "user_preferences": {
+    "site_name": "我的探针页",
+    "site_logo": "",
+    "footer": "Powered by NodeGet"
+  },
   "site_tokens": [
     {
       "name": "主节点",
@@ -68,9 +76,9 @@ mkdir nodeget-statusshow && cd nodeget-statusshow
 
 | 字段 / Field | 说明 / Description |
 |---|---|
-| `site_name` | 页面标题 / Page title |
-| `site_logo` | Logo URL，留空不显示 / Leave empty to hide |
-| `footer` | 页脚文本 / Footer text |
+| `user_preferences.site_name` | 页面标题 / Page title |
+| `user_preferences.site_logo` | Logo URL，留空不显示 / Leave empty to hide |
+| `user_preferences.footer` | 页脚文本 / Footer text |
 | `site_tokens[].name` | 节点显示名称 / Node display name |
 | `site_tokens[].backend_url` | NodeGet Server WebSocket 地址 / WebSocket URL |
 | `site_tokens[].token` | 访问 Token / Access token |
@@ -87,7 +95,7 @@ services:
     ports:
       - "${STATUS_HOST_PORT:-3000}:3000"
     volumes:
-      - ./config.json:/app/config.json:ro
+      - ./nodeget-theme.json:/app/nodeget-theme.json:ro
 ```
 
 ### 3. .env
@@ -109,7 +117,7 @@ docker compose up -d
 # 查看日志 / View logs
 docker compose logs -f
 
-# 修改 config.json 后重启 / Restart after config change
+# 修改 nodeget-theme.json 后重启 / Restart after config change
 docker compose restart nodeget-statusshow
 
 # 拉取新镜像并更新 / Pull new image and update
@@ -194,7 +202,7 @@ services:
     image: coldsword/nodeget-statusshow:latest
     restart: unless-stopped
     volumes:
-      - ./config.json:/app/config.json:ro
+      - ./nodeget-theme.json:/app/nodeget-theme.json:ro
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.statusshow.rule=Host(`status.example.com`)"
