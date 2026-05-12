@@ -155,7 +155,16 @@ export function createProxyServer({
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+function isDirectRun() {
+  if (!process.argv[1]) return false
+  try {
+    return import.meta.url === pathToFileURL(process.argv[1]).href
+  } catch {
+    return false
+  }
+}
+
+if (isDirectRun()) {
   const proxy = createProxyServer({
     backendUrl: process.env.NODEGET_BACKEND_URL,
     backendToken: process.env.NODEGET_BACKEND_TOKEN,

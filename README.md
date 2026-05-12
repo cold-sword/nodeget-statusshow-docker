@@ -167,7 +167,7 @@ Point `backend_url` to the proxy WebSocket endpoint (`/ws`) and keep `token` as 
   "site_tokens": [
     {
       "name": "主节点",
-      "backend_url": "wss://status.example.com/ws",
+      "backend_url": "wss://your-proxy-domain.com/ws",
       "token": "public-placeholder"
     }
   ]
