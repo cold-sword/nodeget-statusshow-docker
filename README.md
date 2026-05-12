@@ -3,7 +3,7 @@
 > [NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) 的第三方 Docker 镜像，自动跟随上游版本同步构建。  
 > Third-party Docker image for [NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow), automatically synced with upstream releases.
 
-[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/cold-sword/nodeget-statusshow-docker/sync-build-push.yml?label=sync%20%26%20build&logo=github)](https://github.com/cold-swor[...]
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/cold-sword/nodeget-statusshow-docker/sync-build-push.yml?label=sync%20%26%20build&logo=github)](https://github.com/cold-sword/nodeget-statusshow-docker/actions/workflows/sync-build-push.yml)
 [![Docker Pulls](https://img.shields.io/docker/pulls/coldsword/nodeget-statusshow?logo=docker)](https://hub.docker.com/r/coldsword/nodeget-statusshow)
 [![Image Version](https://img.shields.io/docker/v/coldsword/nodeget-statusshow?sort=semver&logo=docker)](https://hub.docker.com/r/coldsword/nodeget-statusshow/tags)
 
@@ -13,15 +13,15 @@
 
 **中文**
 
-[NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) 是 [NodeGet](https://github.com/NodeSeekDev/NodeGet) 的公开探针展示页，以实时方式展示服务器状态、资�[...]
+[NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) 是 [NodeGet](https://github.com/NodeSeekDev/NodeGet) 的公开探针展示页，以实时方式展示服务器状态、资源占用与在线情况。
 
 本仓库提供 NodeGet 公共前端默认主题 StatusShow 开箱即用的 Docker 镜像，通过 GitHub Actions 自动追踪上游 Release 并构建推送，无需手动维护。
 
 **English**
 
-[NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) is the public status page for [NodeGet](https://github.com/NodeSeekDev/NodeGet) — a next-generation server monitoring and [...]
+[NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow) is the public status page for [NodeGet](https://github.com/NodeSeekDev/NodeGet) — a next-generation server monitoring and status page system.
 
-This repository provides a ready-to-use Docker image for the NodeGet public frontend's default theme, StatusShow, automatically built and pushed via GitHub Actions whenever a new upstream release [...]
+This repository provides a ready-to-use Docker image for the NodeGet public frontend's default theme, StatusShow, automatically built and pushed via GitHub Actions whenever a new upstream release is published.
 
 ---
 
