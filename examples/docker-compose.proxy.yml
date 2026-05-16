@@ -1,0 +1,20 @@
+name: nodeget-statusshow
+
+services:
+  nodeget-statusshow:
+    image: ${STATUSSHOW_IMAGE:-coldsword/nodeget-statusshow:latest}
+    restart: unless-stopped
+    ports:
+      - "${STATUS_HOST_PORT:-3000}:3000"
+    volumes:
+      - ./config.json:/app/config.json:ro
+
+  nodeget-proxy:
+    image: ${STATUSSHOW_PROXY_IMAGE:-ghcr.io/cold-sword/nodeget-statusshow-proxy:latest}
+    restart: unless-stopped
+    environment:
+      NODEGET_BACKEND_URL: ${NODEGET_BACKEND_URL:?set NODEGET_BACKEND_URL}
+      NODEGET_BACKEND_TOKEN: ${NODEGET_BACKEND_TOKEN:?set NODEGET_BACKEND_TOKEN}
+      PORT: 8787
+    ports:
+      - "${PROXY_HOST_PORT:-8787}:8787"
